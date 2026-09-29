@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Testing & Evals
+*-workspace/
+/tmp/
+.skills_staging/
+
+# Local Upstream References
+.upstream/
+
+# Distribution & Packaging
+*.skill
+dist/
+build/
+
+# Tools & Linters
+.mypy_cache/
+.ruff_cache/
+
+# OS
+.DS_Store
+Thumbs.db
