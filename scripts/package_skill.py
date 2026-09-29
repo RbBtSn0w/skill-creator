@@ -23,7 +23,20 @@ except ImportError:
     from quick_validate import validate_skill
 
 # Standard directories and files excluded across all packaging operations.
-DEFAULT_EXCLUDE_DIRS = {"__pycache__", "node_modules", ".git", ".venv", "venv", ".idea", ".vscode"}
+DEFAULT_EXCLUDE_DIRS = {
+    "__pycache__",
+    "node_modules",
+    ".git",
+    ".venv",
+    "venv",
+    ".env",
+    ".idea",
+    ".vscode",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".pytest_cache",
+    ".cache",
+}
 DEFAULT_EXCLUDE_GLOBS = {"*.pyc"}
 DEFAULT_EXCLUDE_FILES = {".DS_Store", "Thumbs.db"}
 # Root-level non-runtime directories excluded from skill packages.
@@ -38,6 +51,9 @@ def should_exclude(rel_path: Path, custom_excludes: set[str] | None = None) -> b
         return True
     # Exclude root-level non-runtime folders
     if len(parts) > 1 and parts[1] in DEFAULT_ROOT_EXCLUDES:
+        return True
+    # Exclude any hidden directories or files (starting with .) inside the skill package
+    if any(part.startswith(".") for part in parts[1:]):
         return True
     name = rel_path.name
     if name in DEFAULT_EXCLUDE_FILES:
