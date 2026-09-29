@@ -154,7 +154,7 @@ Follow the systematic benchmark workflow:
    cp -r <skill-path> <workspace>/skill-snapshot/
    ```
 3. **Spawn All Runs Concurrently:** Launch subagents for all test cases—both `with_skill` and control group (`without_skill` for greenfield, `old_skill` snapshot for updates)—in the **same turn**. Concurrent execution ensures consistent testing conditions and minimal iteration latency.
-4. **Draft Assertions During Execution:** While subagent runs are in progress, draft objective, quantitative assertions checking observable outcomes. For complex textual or semantic outputs, use `agents/grader.md`.
+4. **Draft Assertions During Execution:** While subagent runs are in progress, draft objective, quantitative assertions checking observable outcomes. For complex textual or semantic outputs, use `references/agents/grader.md`.
 5. **Capture Ephemeral Timing Data:** Task completion notifications contain ephemeral metrics (`total_tokens`, `duration_ms`). Immediately record these into each run's `timing.json` upon completion (this data cannot be recovered after the turn).
 6. **Grade, Aggregate, and Analyze:**
    - Execute grading against assertions. Ensure `grading.json` expectations array strictly uses the fields `text`, `passed`, and `evidence` (the review viewer requires these exact keys).
@@ -162,8 +162,8 @@ Follow the systematic benchmark workflow:
      ```bash
      python scripts/aggregate_benchmark.py <workspace>/iteration-<N> --skill-name <name>
      ```
-   - Diagnose anomalies with `agents/analyzer.md` (flag non-discriminating assertions, high variance, or token bloat).
-   - For blind quality evaluation, adjudicate outputs with `agents/comparator.md`.
+   - Diagnose anomalies with `references/agents/analyzer.md` (flag non-discriminating assertions, high variance, or token bloat).
+   - For blind quality evaluation, adjudicate outputs with `references/agents/comparator.md`.
 7. **Launch Reviewer & Incorporate Feedback:**
    - Start local review server:
      ```bash
