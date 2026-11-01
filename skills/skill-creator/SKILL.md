@@ -5,7 +5,7 @@ description: Create, update, evaluate, and optimize AI agent skills. Synthesizes
 
 # Unified Skill Creator
 
-A universal skill for creating new agent skills, refining existing skills, and measuring skill performance. This workflow combines lean, principle-driven instruction design with robust, subagent-driven evaluation and description optimization loops.
+A universal skill for creating new agent skills, refining existing skills, and measuring skill performance. Use focused edits for maintenance and evaluation when the changed behavior warrants it.
 
 ## Core Principles
 
@@ -100,106 +100,75 @@ Input: Added token validation middleware to protect /api/v1/user endpoints
 Output: feat(auth): validate JWT tokens on user endpoints
 ```
 
-## Creating or Updating a Skill
+## Create or Update
 
-### Step 1: Capture Intent & Design
-Identify the user's core requirements:
-- What should this skill enable the agent to do?
-- When should it trigger? (key trigger phrases and operational contexts)
-- What is the expected output structure and format?
-- What are the safety, permission, or correctness invariants?
-- *Tip: Inspect conversation history to observe real user workflows and error recovery patterns.*
+### Choose the path
 
-### Step 2: Initialize and Author Instructions
-Use the bootstrapping script to scaffold the skill directory:
+For a new skill, identify its task, trigger boundaries, outputs, and correctness or permission
+constraints. Use a lowercase hyphenated name of at most 64 characters. Initialize only the
+resources it needs:
+
 ```bash
 python scripts/init_skill.py <skill-name> --path <output-directory> [--resources scripts,references,assets]
 ```
-Author `SKILL.md`:
-- **`name`**: Action-oriented, lowercase alphanumeric with hyphens (`^[a-z0-9-]+$`, max 64 chars).
-- **`description`**: Pushy but precise. Combine what it does with explicit trigger triggers:
-  *Weak:* "Create deployment pipelines."
-  *Strong:* "Configure and deploy CI/CD pipelines. Use whenever the user mentions setting up automated builds, release workflows, or pipeline configs."
-- **Body**: Use imperative tone, structured headings, explicit output templates, and clear input/output examples.
 
-### Step 3: Validate and Iterate
+For an existing skill, read its current instructions and affected references, scripts, callers,
+and tests before editing. Preserve its canonical name, directory, and supported interfaces;
+do not reinitialize it. Prefer the source repository over an installed copy. If the source is
+unavailable or read-only, use an isolated copy and identify it clearly at delivery.
 
-Select the validation tier based on skill complexity:
+### Revise current guidance
 
-#### Tier A: Quick Validation (Simple or low-risk skills)
-1. **Static Validation:** Run `python scripts/quick_validate.py <path/to/skill>` to verify frontmatter schema, naming constraints, and ensure no lingering `[TODO: ...]` placeholders remain.
-2. **Blind Forward-Testing:** Spawn an independent subagent to execute a realistic task using the skill:
-   - Provide only: the realistic user prompt, the skill path, and raw input files.
-   - Strictly withhold: expected outputs, suspected failure modes, or proposed fixes.
-   - Isolate execution: run in a dedicated temporary workspace.
-   - Authorization gates: confirm with the user before executing external API mutations or fee-incurring tasks.
-3. **Inspect Output & Refine:** Review the generated deliverables and adjust instructions where needed.
+Locate the decision that needs to change and edit it in place. Replace conflicting guidance,
+delete unsupported paths and redundant explanations, and update affected references together.
+Add a rule only for a demonstrated, reusable gap; a transient failure may require no skill edit.
+Do not preserve obsolete instructions by appending exceptions or override sections.
 
-#### Tier B: Rigorous Evaluation Loop (Complex, high-risk, or multi-step skills)
-Follow the systematic benchmark workflow:
-```text
-<skill-name>-workspace/
-└── iteration-1/
-    ├── eval-1/
-    │   ├── with_skill/outputs/      # New skill outputs
-    │   ├── baseline/outputs/        # Control group outputs (without_skill or old_skill)
-    │   └── eval_metadata.json       # Prompt and assertions
-    ├── benchmark.json               # Aggregated metrics (pass rates, tokens, time)
-    └── feedback.json                # User review feedback
+Keep supported compatibility paths and safety or authorization boundaries explicit. Check
+callers before removing resources or contracts. Move substantial conditional detail into a
+reference with a clear reading condition; keep essential boundaries in the entrypoint. Record
+historical rationale in the change review or version history, rather than the execution guide.
+Judge edits by useful decisions retained, not by a target line count or a mandatory history log.
+
+Write accurate, discriminating descriptions that identify the task and its trigger boundaries.
+Use examples or fixed output formats only when they clarify the task or satisfy a real contract.
+
+### Validate the change
+
+Choose checks for the behavior affected by this change, rather than the size of the whole skill:
+
+| Change | Appropriate checks |
+| --- | --- |
+| Wording, links, equivalent deduplication | Review the diff, references, and structure. |
+| Local behavior or routing | Add the relevant failure case, normal path, and adjacent negative case. |
+| Workflow, scripts, or high-impact boundaries | Run affected regressions; compare the old version when needed and verify allowed, denied, and failure paths. |
+
+Run the existing structural validator; it does not prove behavioral improvement:
+
+```bash
+python scripts/quick_validate.py <path/to/skill>
 ```
 
-1. **Define Test Cases:** Author 2–3 realistic test cases in `evals/evals.json` using the schema in `references/schemas.md`.
-2. **Snapshot Existing Skills:** When modifying an existing skill, snapshot the current version before editing:
-   ```bash
-   cp -r <skill-path> <workspace>/skill-snapshot/
-   ```
-3. **Spawn All Runs Concurrently:** Launch subagents for all test cases—both `with_skill` and control group (`without_skill` for greenfield, `old_skill` snapshot for updates)—in the **same turn**. Concurrent execution ensures consistent testing conditions and minimal iteration latency.
-4. **Draft Assertions During Execution:** While subagent runs are in progress, draft objective, quantitative assertions checking observable outcomes. For complex textual or semantic outputs, use `references/agents/grader.md`.
-5. **Capture Ephemeral Timing Data:** Task completion notifications contain ephemeral metrics (`total_tokens`, `duration_ms`). Immediately record these into each run's `timing.json` upon completion (this data cannot be recovered after the turn).
-6. **Grade, Aggregate, and Analyze:**
-   - Execute grading against assertions. Ensure `grading.json` expectations array strictly uses the fields `text`, `passed`, and `evidence` (the review viewer requires these exact keys).
-   - Aggregate statistics:
-     ```bash
-     python scripts/aggregate_benchmark.py <workspace>/iteration-<N> --skill-name <name>
-     ```
-   - Diagnose anomalies with `references/agents/analyzer.md` (flag non-discriminating assertions, high variance, or token bloat).
-   - For blind quality evaluation, adjudicate outputs with `references/agents/comparator.md`.
-7. **Launch Reviewer & Incorporate Feedback:**
-   - Start local review server:
-     ```bash
-     python scripts/generate_review.py <workspace>/iteration-<N> --skill-name "<name>" --benchmark <workspace>/iteration-<N>/benchmark.json
-     ```
-     *(For iteration 2+, pass `--previous-workspace <workspace>/iteration-<N-1>` to view historical diffs. In headless or CI environments, pass `--static /tmp/review.html` to export a standalone HTML artifact).*
-   - The user reviews outputs and formal grades in the browser and submits. Read `<workspace>/feedback.json`, generalize findings, keep instructions lean, and iterate into `iteration-<N+1>/`.
+Reuse evidence for unchanged components. Independent execution is useful when it resolves a
+behavioral uncertainty; it is not required for every small update. Keep cases local and bounded
+unless external actions are already authorized. When a case fails, repair the relevant guidance
+and rerun affected checks; expand evaluation only for a new failure or unresolved risk.
 
-#### Practical Evaluation Guidelines
-- **Single-Agent Fallback:** When running in environments without subagents, execute test cases sequentially in-session. Skip quantitative baselines and focus on direct qualitative inspection of output files with the user.
-- **Mine Transcripts for Reusable Scripts:** Inspect execution transcripts across test runs. If subagents independently write similar ad-hoc scripts (e.g., `create_docx.py` or `extract_table.py`), extract and bundle them directly into `scripts/` to prevent future invocations from reinventing the wheel.
-- **Preserve Identity on Updates:** When modifying an existing skill, maintain the canonical `name` and directory path (do not append `-v2`). If the installed skill resides in a read-only location, copy it to `/tmp/<skill-name>/` to edit, test, and package.
+For multi-case comparisons or description optimization, read
+[references/evaluation.md](references/evaluation.md). A single executor can run old and new
+versions sequentially in separate workspaces; report limitations of shared context.
 
-### Step 4: Description Optimization (Advanced)
-A skill's description controls whether an agent selects it during tool routing. To systematically maximize triggering accuracy:
-1. **Curate Trigger Evaluation Set:** Prepare ~20 realistic user queries:
-   - 8–10 **Positive queries** (should trigger the skill across varying phrasing).
-   - 8–10 **Challenging near-miss negative queries** (adjacent domains or related tools that should NOT trigger this skill, e.g. querying Docker container status vs editing a Dockerfile). *Do not use trivially irrelevant queries like "tell a joke".*
-   - *Query Quality:* Avoid abstract queries like `"Format this data"` or `"Extract text from PDF"`. Author rich queries with natural language, file paths, and context: e.g., `"My manager just sent me ~/Downloads/Q4_sales_final.xlsx and wants a profit margin column added based on revenue in Col C and costs in Col D"`.
-2. **Review Query Set:** Present queries for inspection using the `assets/eval_review.html` template:
-   - Read `assets/eval_review.html` and replace placeholders:
-     - `__EVAL_DATA_PLACEHOLDER__` → JSON array of eval queries (raw JS variable assignment, unquoted).
-     - `__SKILL_NAME_PLACEHOLDER__` → Skill name.
-     - `__SKILL_DESCRIPTION_PLACEHOLDER__` → Current description.
-   - Save to `/tmp/eval_review_<skill-name>.html` and open it. The user can toggle polarities, tweak phrasing, add/remove queries, and export to `~/Downloads/eval_set.json`.
-3. **Run Optimization Loop:** Execute the automated optimizer:
-   ```bash
-   python scripts/run_loop.py --eval-set <path-to-eval-set.json> --skill-path <path-to-skill> --model <model-name> --max-iterations 5
-   ```
-   - **Anti-Overfitting Design:** The loop performs a 60/40 stratified train/test split. History provided to the description generator blinds held-out test scores.
-   - **Selection:** The optimizer selects the `best_description` based on the held-out test set score rather than the training score.
-4. **Apply Result:** Write the winning description back into `SKILL.md` frontmatter.
+### Deliver
 
-### Step 5: Package and Distribute
-Once validated, package the skill into a portable `.skill` archive:
+Finish when current guidance and references agree, the relevant checks pass, and remaining
+limitations are stated. Report what changed, which checks ran, and what remains unverified.
+Do not add an evaluation project or distribution step solely to complete a routine update.
+
+Only package when distribution is requested:
+
 ```bash
 python scripts/package_skill.py <path/to/skill-folder> [output-directory]
 ```
-The packaging script validates the skill structure, verifies frontmatter, and strips VCS history, caches, and test artifacts (`evals/`, `tests/`, `.skills_staging/`). Custom exclusions can be passed via `--exclude` or the `SKILL_PACKAGE_EXCLUDE` environment variable.
+
+The packager validates structure and excludes VCS history, caches, and test artifacts. Preserve
+its existing `--exclude` and `SKILL_PACKAGE_EXCLUDE` options when custom exclusions are needed.
