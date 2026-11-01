@@ -17,16 +17,15 @@
 
 ## Overview
 
-**Skill Creator** is a comprehensive, vendor-agnostic framework for building, testing, refining, and packaging AI agent skills. Synthesizing lean instruction design with robust subagent evaluation loops, it ensures skills trigger with high precision, provide non-obvious guidance, and avoid over-constraining models.
+**Skill Creator** is a comprehensive, vendor-agnostic framework for building, testing, refining, and packaging AI agent skills. It supports focused updates, checks matched to changed behavior, and optional comparative evaluation.
 
 ### Key Capabilities
 
 - **Lean Scaffolding (`init_skill.py`):** Bootstrap standard skills with appropriate resource structures (`scripts/`, `references/`, `assets/`).
 - **Static Schema & Quality Linter (`quick_validate.py`):** Catch unescaped placeholders, regex naming violations, and schema anomalies before deployment.
-- **Dual-Tier Validation Workflow:**
-  - **Tier A (Fast):** Subagent blind forward-testing in isolated scratchpads.
-  - **Tier B (Rigorous):** Concurrent with-skill vs. baseline benchmarking, assertion grading, and browser-based qualitative review (`generate_review.py`).
-- **Trigger Rate Optimization Loop (`run_loop.py`):** Automatically refine frontmatter descriptions using stratified train/test query sets with blinded history to prevent overfitting.
+- **Focused Updates:** Replace outdated guidance in place, preserve supported contracts, and keep historical rationale in version history.
+- **Validation by Change Impact:** Structural checks for small edits; affected behavioral cases and optional baseline comparisons for broader changes. See [evaluation guidance](skills/skill-creator/references/evaluation.md).
+- **Trigger Rate Optimization Loop (`run_loop.py`):** Refine descriptions using development queries and a held-out candidate-selection set; independent final testing requires separate queries.
 - **Clean Packaging (`package_skill.py`):** Bundle production-ready `.skill` zip archives with automated exclusion of VCS, test artifacts, and caches.
 
 ---
@@ -106,22 +105,37 @@ When installed via package managers (such as `adg skills add https://github.com/
 
 ## Quick Start
 
-### 1. Initialize a New Skill
+### Initialize a New Skill
 
 ```bash
 python skills/skill-creator/scripts/init_skill.py my-helper --path skills/ --resources scripts,references,assets --examples
 ```
 
-### 2. Validate Skill Structure
+Complete the generated metadata and task instructions, implement any required helpers, and
+replace or remove placeholder resources. Follow the [skill contract and creation workflow](skills/skill-creator/SKILL.md);
+initialization alone does not produce a finished skill.
+
+### Update an Existing Skill
+
+Read the current instructions and affected resources, then revise the relevant decision in
+place. Replace conflicting rules, remove obsolete guidance, and retain supported compatibility
+and safety boundaries. Do not run the initializer on an existing skill. Validate the changed
+behavior and finish with the diff and verification results; packaging is not required.
+
+### Validate Skill Structure
 
 ```bash
 python skills/skill-creator/scripts/quick_validate.py skills/my-helper
 ```
 
-### 3. Run Benchmark Evaluation (Tier B)
+Also resolve resource links. For a new skill, exercise a representative task through its
+deliverable and check a nearby request outside its scope. Execute new or changed helpers
+with valid and failure inputs; structural validation alone does not establish task correctness.
+
+### Optional: Compare Behavior
 
 1. Author test cases in `evals/evals.json` using the schema defined in `skills/skill-creator/references/schemas.md`.
-2. Spawn concurrent with-skill and baseline runs into `<workspace>/iteration-1/`.
+2. Run the updated skill and previous-version baseline in separate workspaces under `<workspace>/iteration-1/`. Use `without_skill` for a new skill. Runs may be concurrent or sequential.
 3. Grade runs and aggregate statistical benchmarks:
    ```bash
    python skills/skill-creator/scripts/aggregate_benchmark.py <workspace>/iteration-1 --skill-name "my-helper"
@@ -131,9 +145,9 @@ python skills/skill-creator/scripts/quick_validate.py skills/my-helper
    python skills/skill-creator/scripts/generate_review.py <workspace>/iteration-1 --skill-name "my-helper" --benchmark <workspace>/iteration-1/benchmark.json
    ```
 
-### 4. Optimize the Skill Description
+### Optional: Optimize Routing
 
-Automatically maximize triggering accuracy while minimizing false positives on near-miss queries:
+For a demonstrated routing problem, compare positive and near-miss queries. The optimizer selects candidates using its holdout, so that score is validation evidence rather than an independent final test:
 
 ```bash
 python skills/skill-creator/scripts/run_loop.py \
@@ -143,7 +157,9 @@ python skills/skill-creator/scripts/run_loop.py \
   --max-iterations 5
 ```
 
-### 5. Package for Distribution
+### Optional: Package for Distribution
+
+Run this only when a distribution artifact is requested.
 
 ```bash
 python skills/skill-creator/scripts/package_skill.py skills/my-helper dist/
@@ -159,7 +175,7 @@ python skills/skill-creator/scripts/package_skill.py skills/my-helper dist/
 | **Validator** | `skills/skill-creator/scripts/quick_validate.py` | Validates frontmatter attributes, kebab-case naming, and unfinished `[TODO:]` blocks. |
 | **Packager** | `skills/skill-creator/scripts/package_skill.py` | Compiles `.skill` archive with customizable exclusion rules (`--exclude`). |
 | **Eval Runner** | `skills/skill-creator/scripts/run_eval.py` | Evaluates query triggering against `AGENT_CLI` with stream interception. |
-| **Loop Controller** | `skills/skill-creator/scripts/run_loop.py` | Multi-iteration description optimizer with 60/40 stratified holdout. |
+| **Loop Controller** | `skills/skill-creator/scripts/run_loop.py` | Multi-iteration optimizer with a default 0.4 holdout fraction, rounded down with at least one case per class held out; see [split requirements](skills/skill-creator/references/evaluation.md#description-optimization). |
 | **Description Improver** | `skills/skill-creator/scripts/improve_description.py` | Generates discriminating descriptions driven by eval failure analysis. |
 | **Benchmark Aggregator** | `skills/skill-creator/scripts/aggregate_benchmark.py` | Aggregates pass rates, wall-clock duration, and token usage into `benchmark.json`. |
 | **Review Server** | `skills/skill-creator/scripts/generate_review.py` | Serves interactive evaluation viewer (`skills/skill-creator/assets/viewer.html`) or exports `--static` HTML. |
