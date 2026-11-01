@@ -175,7 +175,7 @@ python skills/skill-creator/scripts/package_skill.py skills/my-helper dist/
 | **Validator** | `skills/skill-creator/scripts/quick_validate.py` | Validates frontmatter attributes, kebab-case naming, and unfinished `[TODO:]` blocks. |
 | **Packager** | `skills/skill-creator/scripts/package_skill.py` | Compiles `.skill` archive with customizable exclusion rules (`--exclude`). |
 | **Eval Runner** | `skills/skill-creator/scripts/run_eval.py` | Evaluates query triggering against `AGENT_CLI` with stream interception. |
-| **Loop Controller** | `skills/skill-creator/scripts/run_loop.py` | Multi-iteration optimizer with a 60/40 candidate-selection holdout. |
+| **Loop Controller** | `skills/skill-creator/scripts/run_loop.py` | Multi-iteration optimizer with a default 0.4 holdout fraction, rounded down with at least one case per class held out; see [split requirements](skills/skill-creator/references/evaluation.md#description-optimization). |
 | **Description Improver** | `skills/skill-creator/scripts/improve_description.py` | Generates discriminating descriptions driven by eval failure analysis. |
 | **Benchmark Aggregator** | `skills/skill-creator/scripts/aggregate_benchmark.py` | Aggregates pass rates, wall-clock duration, and token usage into `benchmark.json`. |
 | **Review Server** | `skills/skill-creator/scripts/generate_review.py` | Serves interactive evaluation viewer (`skills/skill-creator/assets/viewer.html`) or exports `--static` HTML. |

@@ -200,6 +200,10 @@ Wall clock timing for a run. Located at `<run-dir>/timing.json`.
 
 **How to capture:** Use measurements available from executor results or logs; completion fields vary by platform. Record wall-clock elapsed time in `total_duration_seconds` and token usage in `total_tokens` when available. Omit unavailable fields rather than inventing values. The example illustrates supported fields, not a requirement that every executor provide them.
 
+The current aggregator reads sibling `timing.json` only when `grading.json` has no non-zero
+duration. Otherwise it skips those token measurements and may use `execution_metrics.output_chars`
+for its `tokens` field. Check raw measurements before interpreting aggregate values as token usage.
+
 ```json
 {
   "total_tokens": 84852,

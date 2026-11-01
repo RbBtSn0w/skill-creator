@@ -12,7 +12,7 @@ ordinary maintenance. Commands below run from the skill directory.
    Preserve the previous skill version as the update baseline; for a new skill, compare against
    execution without it. Record the versions and execution environment.
 2. Give executors the user request, skill, and raw inputs. Withhold the intended answer and
-   proposed fix. Use separate temporary workspaces; restrict side effects to authorized actions.
+   proposed fix. Use separate temporary workspaces; restrict side effects to user-authorized actions.
    Independent executors can run concurrently when resources allow. Sequential comparison is
    also valid; disclose any shared-context or environment limitations.
 3. Review outputs and execution traces against observable outcomes. Assertions should catch
@@ -33,12 +33,22 @@ Use the existing workspace layout:
 <skill-name>-workspace/
 └── iteration-1/
     └── eval-1/
-        ├── with_skill/outputs/
-        ├── old_skill/outputs/
+        ├── with_skill/
+        │   └── run-1/
+        │       ├── outputs/
+        │       ├── grading.json
+        │       └── timing.json
+        ├── old_skill/
+        │   └── run-1/
+        │       ├── outputs/
+        │       ├── grading.json
+        │       └── timing.json
         └── eval_metadata.json
 ```
 
-For new skills, use `without_skill` instead of `old_skill`. Each run's `grading.json` uses
+For new skills, use `without_skill` instead of `old_skill`. The aggregator requires `run-*`
+directories and reads their `grading.json`; it skips configurations without that layer.
+Each run's `grading.json` uses
 `expectations` entries with `text`, `passed`, and `evidence`; preserve these field names.
 
 ```bash
@@ -67,9 +77,14 @@ To review queries, populate [../assets/eval_review.html](../assets/eval_review.h
 python scripts/run_loop.py --eval-set <path-to-eval-set.json> --skill-path <path-to-skill> --model <model-name> --max-iterations 5 --report none
 ```
 
-This command invokes model-backed tools; run it only within the authorized scope and cost.
-The existing default splits queries 60/40 and uses the held-out portion to select the best
-candidate. Although script fields call it `test`, it serves as a validation set, not an
+This command invokes model-backed tools; run it only within the user-authorized scope and cost.
+The default holdout fraction is 0.4. For each positive and negative group, the splitter holds
+out `max(1, int(group_size * holdout))` cases, so small sets do not split exactly 60/40.
+At the default fraction, provide at least two cases per group to retain both classes in the
+training and holdout sets; one case per group leaves training empty and causes an immediate
+exit without improvement. Inspect the actual split before interpreting optimization results.
+The loop uses the held-out portion to select the best candidate. Although script fields call
+it `test`, it serves as a validation set, not an
 independent final test. Blinding these scores from the description improver does not remove
 selection bias. Preserve the CLI flags and JSON fields; no script change is implied here.
 The tool returns `best_description`; inspect the routing tradeoff and apply it to the source

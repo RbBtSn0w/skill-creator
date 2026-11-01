@@ -155,8 +155,9 @@ python scripts/quick_validate.py <path/to/skill>
 ```
 
 Reuse evidence for unchanged components. Independent execution is useful when it resolves a
-behavioral uncertainty; it is not required for every small update. Keep cases local and bounded
-unless external actions are already authorized. When a case fails, repair the relevant guidance
+behavioral uncertainty; it is not required for every small update. Keep cases local and bounded.
+Before external API mutations or fee-incurring tasks, obtain the user's approval unless their
+existing approval already covers those actions. When a case fails, repair the relevant guidance
 and rerun affected checks; expand evaluation only for a new failure or unresolved risk.
 
 For multi-case comparisons or description optimization, read
