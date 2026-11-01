@@ -111,6 +111,10 @@ When installed via package managers (such as `adg skills add https://github.com/
 python skills/skill-creator/scripts/init_skill.py my-helper --path skills/ --resources scripts,references,assets --examples
 ```
 
+Complete the generated metadata and task instructions, implement any required helpers, and
+replace or remove placeholder resources. Follow the [skill contract and creation workflow](skills/skill-creator/SKILL.md);
+initialization alone does not produce a finished skill.
+
 ### Update an Existing Skill
 
 Read the current instructions and affected resources, then revise the relevant decision in
@@ -123,6 +127,10 @@ behavior and finish with the diff and verification results; packaging is not req
 ```bash
 python skills/skill-creator/scripts/quick_validate.py skills/my-helper
 ```
+
+Also resolve resource links. For a new skill, exercise a representative task through its
+deliverable and check a nearby request outside its scope. Execute new or changed helpers
+with valid and failure inputs; structural validation alone does not establish task correctness.
 
 ### Optional: Compare Behavior
 

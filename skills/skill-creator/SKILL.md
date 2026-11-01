@@ -29,7 +29,7 @@ skill-name/
 ```
 
 ### Component Roles
-- **`SKILL.md` (Required):** The single entry point loaded into context when the skill triggers. Contains frontmatter, high-level guidance, critical invariants, and reference links.
+- **`SKILL.md` (Required):** YAML frontmatter with `name` and `description`, followed by complete task instructions. The name matches its directory and uses lowercase letters, digits, and single hyphens, up to 64 characters. The description states what the skill does and when it applies. The body defines required inputs, the intended output, the workflow and decision points, and relevant correctness or permission boundaries. Preserve supported optional frontmatter on updates.
 - **`scripts/` (Optional):** Executable code (e.g., Python, Bash) for deterministic transformations, heavy parsing, or complex API calls. Scripts run via shell; their source code is not loaded into prompt context unless actively debugging.
 - **`references/` (Optional):** On-demand documentation files (e.g., schemas, format specifications, platform guides). Loaded into context only when referenced via markdown links.
 - **`assets/` (Optional):** Static artifacts (templates, boilerplate code, images) copied or adapted into output deliverables. Assets are never directly injected into agent context.
@@ -102,22 +102,27 @@ Output: feat(auth): validate JWT tokens on user endpoints
 
 ## Create or Update
 
-### Choose the path
+### Create a new skill
 
 For a new skill, identify its task, trigger boundaries, outputs, and correctness or permission
-constraints. Use a lowercase hyphenated name of at most 64 characters. Initialize only the
-resources it needs:
+constraints from realistic requests. Clarify missing information only when it changes the
+scope or design. Initialize only the resources it needs:
 
 ```bash
 python scripts/init_skill.py <skill-name> --path <output-directory> [--resources scripts,references,assets]
 ```
 
+Complete the generated frontmatter and task instructions before validation. Replace or remove
+scaffold placeholders and unused examples. Implement required helpers and supply actual
+reference or asset content; link supporting resources with clear conditions for using them.
+An initialized template is not a finished skill.
+
+### Update an existing skill
+
 For an existing skill, read its current instructions and affected references, scripts, callers,
 and tests before editing. Preserve its canonical name, directory, and supported interfaces;
 do not reinitialize it. Prefer the source repository over an installed copy. If the source is
 unavailable or read-only, use an isolated copy and identify it clearly at delivery.
-
-### Revise current guidance
 
 Locate the decision that needs to change and edit it in place. Replace conflicting guidance,
 delete unsupported paths and redundant explanations, and update affected references together.
@@ -130,18 +135,18 @@ reference with a clear reading condition; keep essential boundaries in the entry
 historical rationale in the change review or version history, rather than the execution guide.
 Judge edits by useful decisions retained, not by a target line count or a mandatory history log.
 
-Write accurate, discriminating descriptions that identify the task and its trigger boundaries.
-Use examples or fixed output formats only when they clarify the task or satisfy a real contract.
+### Validate the result
 
-### Validate the change
+Check that the skill meets the `SKILL.md` contract above and that its resource links resolve.
+Choose behavioral checks for the work performed, rather than the size of the whole skill:
 
-Choose checks for the behavior affected by this change, rather than the size of the whole skill:
-
-| Change | Appropriate checks |
+| Work | Appropriate checks |
 | --- | --- |
+| New skill | Exercise a representative request from inputs to the requested deliverable, and check a nearby request outside its scope. |
 | Wording, links, equivalent deduplication | Review the diff, references, and structure. |
 | Local behavior or routing | Add the relevant failure case, normal path, and adjacent negative case. |
-| Workflow, scripts, or high-impact boundaries | Run affected regressions; compare the old version when needed and verify allowed, denied, and failure paths. |
+| New or changed executable helpers | Execute representative valid and failure inputs; verify the actual output and failure behavior. |
+| Workflow or high-impact boundaries | Run affected regressions; compare the old version when needed and verify allowed, denied, and failure paths. |
 
 Run the existing structural validator; it does not prove behavioral improvement:
 
